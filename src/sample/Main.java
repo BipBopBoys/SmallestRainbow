@@ -120,7 +120,7 @@ public class Main extends Application {
                 node.setxLoc(x);
                 node.setyLoc(y);
 
-                gc.setFill(Color.BLACK);
+                gc.setFill(getColour(node.getColor()));
                 gc.fillOval(node.getxLoc(), node.getyLoc(), nodeSize, nodeSize);
 
                 //System.out.println(node.getxLoc() + ", " + node.getyLoc());
@@ -167,5 +167,26 @@ public class Main extends Application {
 
     public static void main(String[] args) {
         launch(args);
+    }
+
+    private Color getColour(int nodeColour){
+        switch(nodeColour){
+            case(0):return Color.BLUE;
+            case(1):return Color.ALICEBLUE;
+            case(2):return Color.CORNSILK;
+            case(3):return Color.AQUA;
+            case(4):return Color.AQUAMARINE;
+            case(5):return Color.AZURE;
+            case(6):return Color.BISQUE;
+            case(7):return Color.BLANCHEDALMOND;
+            case(8):return Color.BLUEVIOLET;
+            case(9):return Color.BROWN;
+            case(10):return Color.BURLYWOOD;
+            case(11):return Color.CADETBLUE;
+            case(12):return Color.CHARTREUSE;
+            case(13):return Color.CHOCOLATE;
+            case(14):return Color.CORAL;
+            default:return Color.BLACK;
+        }
     }
 }
