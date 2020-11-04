@@ -28,30 +28,101 @@ public class Main extends Application {
     @Override
     public void start(Stage primaryStage) throws Exception{
         //rng.setSeed(seed);
-        Solution firstSolution = initialization();//Get First Worst Soulution
+        Solution currentSolution = initialization();//Get First Worst Solution
+        Solution bestSolution = new Solution(currentSolution);
         System.out.println("RUN");
         List<Integer> emptyList = new ArrayList<>();
         LocalTime start = LocalTime.now();
-        SAThread child =  new SAThread(firstSolution,"0.",(int)firstSolution.size(), emptyList ,0); //Create Master Thread
+        //SAThread child =  new SAThread(firstSolution, emptyList ,0); //Create Master Thread
 
-        Future<SolutionAndRecord> futureCall = child.findSmaller();                                                              //Start Thread
-        SolutionAndRecord result = futureCall.get();
-        Solution finalSolution = result.getSolution();
-        if(finalSolution.validSolution()){
-            finalSolution.printSolution();
-            System.out.println(finalSolution.getNumColours());
-            System.out.println(result.printRecords(start).toString());
-            drawGraph(finalSolution, primaryStage);
-        }
-        else{
-            System.out.println("Init Solution best solution");
-            drawGraph(firstSolution, primaryStage);
-        }
-        //minimumSolution =
+        //Future<Solution> futureCall = child.findSmaller();                                                              //Start Thread
+        //SolutionAndRecord result = futureCall.get();
 
+        for(int i =0;i<100;i++) {
+            currentSolution = getNextBest(new Solution(currentSolution));
+            if (currentSolution.validSolution() && currentSolution.getNumColours() < bestSolution.getNumColours()) {
+                bestSolution = currentSolution;
+                if(bestSolution.getNumColours() <= 3)
+                    break;
+            }
+        }
+
+        bestSolution.printSolution();
+        System.out.println(bestSolution.getNumColours());
+        //System.out.println(result.printRecords(start).toString());
+
+        drawGraph(bestSolution, primaryStage);
         System.out.println("Fin");
     }
 
+    private Solution getNextBest(Solution solution){
+        Solution currentSolution = solution;
+        SAThread child;
+        List<Future<Solution>> listOfExececutions= new ArrayList<>();
+        int numChildren = getNumChildren();
+        try{
+            for (int i = 0;i < numChildren;i++){
+                List<Integer> nodesToChange = chooseNodes(currentSolution.size());
+                int newColour = rng.nextInt((int) currentSolution.size());
+                child = new SAThread(currentSolution,currentSolution.getNumColours(), nodesToChange, newColour);
+                Future<Solution> futureCall = child.findSmaller();
+                listOfExececutions.add(futureCall);
+            }
+
+            while(!futuresComplete(listOfExececutions)){
+                for (int f = 0; f < listOfExececutions.size();f++) {
+                    if(listOfExececutions.get(f).isDone() && !listOfExececutions.get(f).isCancelled()){
+                        Solution result = listOfExececutions.get(f).get(); // Here the thread will be blocked
+                        int resultNumColours = result.getNumColours();
+                        if (resultNumColours < currentSolution.getNumColours() && result.validSolution()) {
+                            System.out.println("Replacement");
+                            currentSolution = result;
+                            if(currentSolution.getNumColours() <= 3){
+                                System.out.println("Min has been found");
+                                cancelAllThreads(listOfExececutions);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        return currentSolution;
+    }
+    private boolean futuresComplete(List<Future<Solution>> threads){
+        boolean complete = true;
+          for (Future<Solution> thread:threads) {
+              if(!thread.isDone()){
+                  complete = false;
+              }
+          }
+          return complete;
+      }
+      private void cancelAllThreads(List<Future<Solution>> threads){
+        for (Future<Solution> thread:threads) {
+            if(!thread.isDone())
+                thread.cancel(true);
+          }
+      }
+    private List<Integer> chooseNodes(int numNodes){
+        List<Integer> nodes = new ArrayList<>();
+        int node;
+        for(int i =0;i<Math.ceil(numNodes/10);i++){
+            do {
+                node = rng.nextInt(numNodes);
+            }while(nodes.contains(node));
+            nodes.add(node);
+        }
+        return nodes;
+    }
+    private int getNumChildren(){
+        int children = 1;
+        //Determine how many children
+        return children;
+    }
     private Solution initialization(){
         Parameters parameters = getParameters();
         List<String> list = parameters.getRaw();
@@ -96,12 +167,12 @@ public class Main extends Application {
         int numColours = solution.getNumColours();
         int numNodes = (int) solution.size();
 
-        double theta = 360/numNodes;
+        double theta = Math.PI*2/numNodes;
         double thetaTemp = theta;
-        double r = 200;
+        double r = 400;
         double midX = canvas.getWidth()/2;
         double midY = canvas.getHeight()/2;
-        double nodeSize = r*Math.sqrt(2-2*Math.cos(theta))/6;  // Find an appropriate size of the nodes.
+        double nodeSize = r*Math.sqrt(2-2*Math.cos(theta))/2;  // Find an appropriate size of the nodes.
 
         // Draw and find the nodes.
         for(Node node : solution.getNodes()) {
@@ -119,12 +190,12 @@ public class Main extends Application {
 
                 node.setxLoc(x);
                 node.setyLoc(y);
-
+                //gc.setFill(new Color(node.getColor()));
                 gc.setFill(getColour(node.getColor()));
                 gc.fillOval(node.getxLoc(), node.getyLoc(), nodeSize, nodeSize);
 
                 //System.out.println(node.getxLoc() + ", " + node.getyLoc());
-                System.out.println(theta + "");
+                //System.out.println(theta + "");
                 theta += thetaTemp;
 
             }catch (Exception ex) {

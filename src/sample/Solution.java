@@ -147,7 +147,7 @@ public class Solution {
         }
 
     }
-    public double size(){
+    public int size(){
         return nodes.size();
     }
     public float checkEdges(){
